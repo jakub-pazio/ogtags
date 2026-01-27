@@ -17,15 +17,15 @@ const (
 )
 
 type Tag struct {
-	Name  string
-	Value string
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type RequiredTags struct {
-	Title Tag
-	Type  Tag
-	Image Tag
-	Url   Tag
+	Title Tag `json:"title"`
+	Type  Tag `json:"type"`
+	Image Tag `json:"image"`
+	Url   Tag `json:"url"`
 }
 
 func Parse(s string) Tag {
@@ -42,14 +42,14 @@ func Parse(s string) Tag {
 func GetBody(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	defer resp.Body.Close()
 
 	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return string(bs), nil
@@ -65,7 +65,7 @@ func getOgTags(body string) ([]Tag, error) {
 
 	for n := range doc.Descendants() {
 		if isNodeOgTag(n) {
-			t := getOgTag(n)
+			t := getOgTagValues(n)
 			res = append(res, t)
 		}
 	}
@@ -86,7 +86,7 @@ func isNodeOgTag(n *html.Node) bool {
 	}
 	return false
 }
-func getOgTag(n *html.Node) Tag {
+func getOgTagValues(n *html.Node) Tag {
 	var (
 		name  string
 		value string

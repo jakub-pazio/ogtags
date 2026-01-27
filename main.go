@@ -3,9 +3,9 @@ package main
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
+	"flag"
+	"log"
 	"net/http"
-	"os"
 
 	"github.com/jakub-pazio/ogtags/tags"
 )
@@ -13,29 +13,33 @@ import (
 //go:embed static/index.html
 var staticFiles embed.FS
 
+var portFlag = flag.String("p", "8081", "port to run application at")
+
 func main() {
-	mux := http.NewServeMux()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	flag.Parse()
 
 	indexFile, err := staticFiles.ReadFile("static/index.html")
 	if err != nil {
-		fmt.Println("Error reading index.html", err)
-		os.Exit(1)
+		log.Panicf("Error reading index.html: %v\n", err)
 	}
+
+	mux := http.NewServeMux()
 
 	mux.HandleFunc("/tags", func(w http.ResponseWriter, r *http.Request) {
 		reqUrl := r.URL.Query().Get("url")
 		if reqUrl == "" {
-			fmt.Println("No url in req")
+			log.Println("No url in request")
 			w.Write([]byte("Add url\n"))
 			return
 		}
 
 		//TODO: Check if input is correct
 		ts, err := tags.GetOgMetaTags(reqUrl)
-
 		if err != nil {
+			log.Printf("Error getting OG tags: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Println("Error", err)
 			return
 		}
 
@@ -49,7 +53,8 @@ func main() {
 		w.Write(indexFile)
 	})
 
-	if err := http.ListenAndServe(":8081", mux); err != nil {
-		fmt.Println("Server failed", err)
+	appPort := ":" + *portFlag
+	if err := http.ListenAndServe(appPort, mux); err != nil {
+		log.Println("Server failed", err)
 	}
 }
