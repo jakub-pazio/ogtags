@@ -23,13 +23,13 @@
 		const userURL = urlInput.value;
 		const res = await fetch("/tags?url=" + userURL);
 		const data = await res.json();
-		if(data.Title.Value === "") {
+		if(data.title.value === "") {
 			resDom.innerHTML = "no preview";
 			img.Div.innerHTML = "";
 			return;
 		}
 		resDom.innerHTML = JSON.stringify(data);
-		imgDiv.innerHTML = "<img src=\"" + data.Image.Value + "\"/>"
+		imgDiv.innerHTML = "<img src=\"" + data.image.value + "\"/>"
 	}
 </script>
 </html>
