@@ -16,7 +16,7 @@ var staticFiles embed.FS
 func main() {
 	mux := http.NewServeMux()
 
-	indexFile, err := staticFiles.ReadFile("./static/index.html")
+	indexFile, err := staticFiles.ReadFile("static/index.html")
 	if err != nil {
 		fmt.Println("Error reading index.html", err)
 		os.Exit(1)
