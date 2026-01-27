@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width" />
+<title>OG Preview</title>
+</head>
+<body>
+	<h1>OG Tag Preview</h1>
+	<p>Here you can preview your OG tags</p>
+	<input id="url-input" size="100" type="text"/>
+	<input id="url-button" type="button" value="Check URL"/>
+	
+	<p id="endpoint-result"></p>
+	<div id="img-div"></div>
+</body>
+<script type="module">
+	const urlButton = document.getElementById("url-button");
+	const urlInput = document.getElementById("url-input");
+	const resDom = document.getElementById("endpoint-result");
+	const imgDiv = document.getElementById("img-div");
+
+	urlButton.onclick = async () => {
+		const userURL = urlInput.value;
+		const res = await fetch("/tags?url=" + userURL);
+		const data = await res.json();
+		if(data.Title.Value === "") {
+			resDom.innerHTML = "no preview";
+			img.Div.innerHTML = "";
+			return;
+		}
+		resDom.innerHTML = JSON.stringify(data);
+		imgDiv.innerHTML = "<img src=\"" + data.Image.Value + "\"/>"
+	}
+</script>
+</html>
