@@ -66,7 +66,13 @@ func main() {
 		w.Write(indexFile)
 	})
 
-	handler := otelhttp.NewHandler(mux, "/")
+	handler := otelhttp.NewHandler(
+		mux,
+		"/",
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}),
+	)
 
 	appPort := ":" + *portFlag
 	if err := http.ListenAndServe(appPort, handler); err != nil {
