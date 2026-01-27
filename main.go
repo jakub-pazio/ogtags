@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,10 +10,13 @@ import (
 	"github.com/jakub-pazio/ogtags/tags"
 )
 
+//go:embed static/index.html
+var staticFiles embed.FS
+
 func main() {
 	mux := http.NewServeMux()
 
-	indexFile, err := os.ReadFile("./static/index.html")
+	indexFile, err := staticFiles.ReadFile("./static/index.html")
 	if err != nil {
 		fmt.Println("Error reading index.html", err)
 		os.Exit(1)
