@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/jakub-pazio/ogtags/tags"
+	"github.com/jakub-pazio/ogtags/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 //go:embed static/index.html
@@ -19,6 +24,14 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flag.Parse()
+
+	ctx := context.Background()
+	shutdown, err := telemetry.SetupOtelSDK(ctx)
+	if err != nil {
+		fmt.Println("Could not setup telemetry", err)
+		os.Exit(1)
+	}
+	defer shutdown(ctx)
 
 	indexFile, err := staticFiles.ReadFile("static/index.html")
 	if err != nil {
@@ -36,14 +49,14 @@ func main() {
 		}
 
 		//TODO: Check if input is correct
-		ts, err := tags.GetOgMetaTags(reqUrl)
+		ts, err := tags.GetOgMetaTags(r.Context(), reqUrl)
 		if err != nil {
 			log.Printf("Error getting OG tags: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		rts := tags.GetRequiredTags(ts)
+		rts := tags.GetRequiredTags(r.Context(), ts)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(rts)
@@ -53,8 +66,10 @@ func main() {
 		w.Write(indexFile)
 	})
 
+	handler := otelhttp.NewHandler(mux, "/")
+
 	appPort := ":" + *portFlag
-	if err := http.ListenAndServe(appPort, mux); err != nil {
+	if err := http.ListenAndServe(appPort, handler); err != nil {
 		log.Println("Server failed", err)
 	}
 }

@@ -1,10 +1,13 @@
 package tags
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strings"
 
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -14,6 +17,13 @@ const (
 	OgType  string = "og:type"
 	OgImage string = "og:image"
 	OgUrl   string = "og:url"
+)
+
+const name = "ogtags"
+
+var (
+	tracer = otel.Tracer(name)
+	logger = otelslog.NewLogger(name)
 )
 
 type Tag struct {
@@ -39,7 +49,12 @@ func Parse(s string) Tag {
 	}
 }
 
-func GetBody(url string) (string, error) {
+func GetBody(ctx context.Context, url string) (string, error) {
+	ctx, span := tracer.Start(ctx, "get-body")
+	defer span.End()
+
+	logger.InfoContext(ctx, "getting body page", "url", url)
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -107,8 +122,11 @@ func getOgTagValues(n *html.Node) Tag {
 	}
 }
 
-func GetOgMetaTags(url string) ([]Tag, error) {
-	body, err := GetBody(url)
+func GetOgMetaTags(ctx context.Context, url string) ([]Tag, error) {
+	ctx, span := tracer.Start(ctx, "get-og-meta-tags")
+	defer span.End()
+
+	body, err := GetBody(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +134,7 @@ func GetOgMetaTags(url string) ([]Tag, error) {
 	return getOgTags(body)
 }
 
-func GetRequiredTags(tags []Tag) RequiredTags {
+func GetRequiredTags(ctx context.Context, tags []Tag) RequiredTags {
 	var rt RequiredTags
 
 	for _, t := range tags {
