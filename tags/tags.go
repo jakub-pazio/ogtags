@@ -38,17 +38,6 @@ type RequiredTags struct {
 	Url   Tag `json:"url"`
 }
 
-func Parse(s string) Tag {
-	if s == "" {
-		return Tag{}
-	}
-
-	return Tag{
-		Name:  "Title",
-		Value: "Post about OCaml",
-	}
-}
-
 func GetBody(ctx context.Context, url string) (string, error) {
 	ctx, span := tracer.Start(ctx, "get-body")
 	defer span.End()
@@ -70,7 +59,7 @@ func GetBody(ctx context.Context, url string) (string, error) {
 	return string(bs), nil
 }
 
-func getOgTags(body string) ([]Tag, error) {
+func ParseTags(body string) ([]Tag, error) {
 	doc, err := html.Parse(strings.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -131,10 +120,10 @@ func GetOgMetaTags(ctx context.Context, url string) ([]Tag, error) {
 		return nil, err
 	}
 
-	return getOgTags(body)
+	return ParseTags(body)
 }
 
-func GetRequiredTags(ctx context.Context, tags []Tag) RequiredTags {
+func GetRequiredTags(tags []Tag) RequiredTags {
 	var rt RequiredTags
 
 	for _, t := range tags {
