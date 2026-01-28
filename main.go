@@ -58,6 +58,7 @@ func main() {
 		}
 
 		if ok {
+			fmt.Printf("We hit cache for url: %q\n", reqUrl)
 			// We read cached JSON from cache, we can just write this to the wire
 			w.Write([]byte(cachedTags))
 			w.WriteHeader(http.StatusOK)
