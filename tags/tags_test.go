@@ -24,7 +24,7 @@ const htmlbody = `
 `
 
 func TestGetOgTags(t *testing.T) {
-	got, err := getOgTags(htmlbody)
+	got, err := ParseTags(htmlbody)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

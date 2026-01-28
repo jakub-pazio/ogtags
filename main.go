@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -42,15 +43,17 @@ func main() {
 		log.Panicf("Error reading index.html: %v\n", err)
 	}
 
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 	hc := httpclient.New()
 
-	s := server.New(tagsCache, hc, indexFile)
+	s := server.New(tagsCache, hc, indexFile, logger)
 
 	fmt.Printf("Starting application on port %s\n", *portFlag)
 
 	appPort := ":" + *portFlag
 	if err := http.ListenAndServe(appPort,
-		otelhttp.NewHandler(&s.Mux, "ogtags-server"),
+		otelhttp.NewHandler(s.Mux, "ogtags-server"),
 	); err != nil {
 		log.Println("Server failed", err)
 	}
