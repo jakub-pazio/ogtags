@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jakub-pazio/ogtags/cache"
 	"github.com/jakub-pazio/ogtags/tags"
 	"github.com/jakub-pazio/ogtags/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -33,6 +34,9 @@ func main() {
 	}
 	defer shutdown(ctx)
 
+	tagsCache, cacheShutdownFn := cache.New()
+	defer cacheShutdownFn()
+
 	indexFile, err := staticFiles.ReadFile("static/index.html")
 	if err != nil {
 		log.Panicf("Error reading index.html: %v\n", err)
@@ -48,6 +52,18 @@ func main() {
 			return
 		}
 
+		ok, cachedTags, err := tagsCache.GetRequiredTags(ctx, reqUrl)
+		if err != nil {
+			log.Printf("Error reading tags from cache: %v\n", err)
+		}
+
+		if ok {
+			// We read cached JSON from cache, we can just write this to the wire
+			w.Write([]byte(cachedTags))
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		//TODO: Check if input is correct
 		ts, err := tags.GetOgMetaTags(r.Context(), reqUrl)
 		if err != nil {
@@ -60,6 +76,16 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(rts)
+
+		if !ok {
+			//If item was not found in cache, after we send it to client also save it to cache
+			bs, err := json.Marshal(rts)
+			if err != nil {
+				fmt.Printf("Could not marshal tags: %v\n", err)
+				return
+			}
+			tagsCache.SetRequiredTags(ctx, reqUrl, string(bs))
+		}
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
